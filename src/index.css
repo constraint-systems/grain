@@ -5,4 +5,5 @@
 html, body {
   background-color: theme('colors.neutral.900');
   color: theme('colors.neutral.100');
+  overflow: hidden;
 }

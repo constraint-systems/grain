@@ -84,6 +84,7 @@ function App() {
         <div
           className="w-full h-full relative border-l border-r cursor-crosshair border-l-neutral-700 border-r-neutral-700"
           onPointerDown={(e) => {
+            e.stopPropagation();
             (e.target as any).setPointerCapture(e.pointerId);
             draggingRef.current = true;
             const rect = e.currentTarget.getBoundingClientRect();
@@ -98,6 +99,7 @@ function App() {
           }}
           onPointerMove={(e) => {
             if (!draggingRef.current) return;
+            e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
@@ -127,6 +129,7 @@ function App() {
         <div
           className="w-full h-full relative border-l border-r cursor-crosshair border-l-neutral-700 border-r-neutral-700"
           onPointerDown={(e) => {
+            e.stopPropagation();
             (e.target as any).setPointerCapture(e.pointerId);
             draggingRef.current = true;
             const rect = e.currentTarget.getBoundingClientRect();
@@ -146,6 +149,7 @@ function App() {
           }}
           onPointerMove={(e) => {
             if (!draggingRef.current) return;
+            e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
@@ -345,6 +349,7 @@ function Camera() {
   const [, setImageSource] = useAtom(ImageSourceAtom);
   const captureRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   captureRef.current = captureRef.current || document.createElement("canvas");
 
@@ -357,6 +362,7 @@ function Camera() {
       setDevices(videoDevices);
       if (videoDevices.length > 0) {
         setDevice(videoDevices[0]);
+        setFacingMode("user");
       }
     }
     main();
@@ -414,7 +420,7 @@ function Camera() {
         <div className="w-full flex justify-center">
           <video
             className="w-full"
-            style={{ transform: "scaleX(-1)" }}
+            style={{ transform: facingMode === "user" ? "scaleX(-1)" : "" }}
             ref={videoRef}
             playsInline={true}
             autoPlay={true}
@@ -430,6 +436,11 @@ function Camera() {
                 (device) => device.deviceId === deviceId,
               );
               setDevice(device!);
+              if (device!.label.toLowerCase().includes("back")) {
+                setFacingMode("environment");
+              } else {
+                setFacingMode("user");
+              }
             }}
           >
             {devices.map((device) => (
@@ -445,9 +456,13 @@ function Camera() {
               const ctx = captureRef.current!.getContext("2d")!;
               captureRef.current!.width = video.videoWidth;
               captureRef.current!.height = video.videoHeight;
-              ctx.translate(video.videoWidth, 0);
-              ctx.scale(-1, 1);
-              ctx.drawImage(video, 0, 0);
+              if (facingMode === "user") {
+                ctx.translate(video.videoWidth, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0);
+              } else {
+                ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+              }
               cleanup();
               setImageSource(captureRef.current!.toDataURL());
               setCamera(false);

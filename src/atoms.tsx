@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import veil from "./assets/veil.png";
+import veil from "./assets/veil-small.png";
 import { atomWithStorage } from "jotai/utils";
 
 export const ImageSourceAtom = atom<string | null>(veil);
