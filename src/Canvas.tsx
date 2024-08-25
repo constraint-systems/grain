@@ -17,13 +17,14 @@ export function Canvas() {
 
   useEffect(() => {
     if (!resizeCanvas) return;
+    console.log("render");
     const canvas = canvasRef.current!;
     const width = resizeCanvas.width;
     const height = resizeCanvas.height;
     canvas.width = width;
     canvas.height = height;
-    const dtx = canvas.getContext("2d")!;
-    dtx.drawImage(resizeCanvas, 0, 0);
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(resizeCanvas, 0, 0);
     processLayer(canvas, threshold);
   }, [resizeCanvas, threshold, canvasRenderBump]);
 

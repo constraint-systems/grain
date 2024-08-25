@@ -21,6 +21,8 @@ export function processLayer(canvas: HTMLCanvasElement, threshold: number) {
     cellSizes.push(2 ** i);
   }
 
+  console.log(cellSizes);
+
   const imageDataContainer = ctx.getImageData(0, 0, width, height);
 
   for (let cellSize of cellSizes) {

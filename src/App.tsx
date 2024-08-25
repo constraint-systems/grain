@@ -203,7 +203,7 @@ function App() {
             <div>
               {width}X{height}
               {Math.round(resize * 100) !== 100
-                ? ` to ${Math.round(width * resize)}X${Math.round(height * resize)}`
+                ? ` to ${Math.round(width! * resize)}X${Math.round(height! * resize)}`
                 : null}
             </div>
           </div>
