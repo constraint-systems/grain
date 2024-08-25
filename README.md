@@ -1,7 +1,7 @@
 # Grain
 
 <img
-src='https://raw.githubusercontent.com/constraint-systems/grain/main/public/grain'
+src='https://raw.githubusercontent.com/constraint-systems/grain/main/public/grain.gif'
 width="600"/>
 
 Progressively pixelate an image.
