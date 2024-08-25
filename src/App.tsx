@@ -8,6 +8,8 @@ import {
   ImageHeightAtom,
   ImageSourceAtom,
   ImageWidthAtom,
+  ResizeAtom,
+  ResizeCanvasAtom,
   SourceCanvasAtom,
   ThresholdAtom,
 } from "./atoms";
@@ -23,6 +25,9 @@ function App() {
   const [height] = useAtom(ImageHeightAtom);
   const draggingRef = useRef(false);
   const maxThreshold = 40;
+  const [resize, setResize] = useAtom(ResizeAtom);
+  const maxResize = 2;
+  const minResize = 0.25;
   const [, setImageSource] = useAtom(ImageSourceAtom);
   const [canvas] = useAtom(CanvasAtom);
   const [showInfo, setShowInfo] = useState(false);
@@ -31,9 +36,21 @@ function App() {
   useEffect(() => {
     function handleArrowKeys(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") {
-        setThreshold((threshold) => Math.max(0, threshold - 1));
+        if (e.shiftKey) {
+          setResize((resize) =>
+            Math.min(maxResize, Math.max(minResize, resize - 0.05)),
+          );
+        } else {
+          setThreshold((threshold) => Math.max(0, threshold - 1));
+        }
       } else if (e.key === "ArrowRight") {
-        setThreshold((threshold) => Math.min(maxThreshold, threshold + 1));
+        if (e.shiftKey) {
+          setResize((resize) =>
+            Math.min(maxResize, Math.max(minResize, resize + 0.05)),
+          );
+        } else {
+          setThreshold((threshold) => Math.min(maxThreshold, threshold + 1));
+        }
       }
     }
     window.addEventListener("keydown", handleArrowKeys);
@@ -56,12 +73,14 @@ function App() {
           INFO
         </button>
       </div>
-      <div className="w-full h-full relative">
+      <div className="w-full h-full relative my-4">
         <Canvas />
       </div>
 
       <div className="w-full h-10 border-t select-none border-t-neutral-700 flex relative items-center text-neutral-400">
-        <div className="px-3">LEVEL</div>
+        <div className="px-3" title="Left and arrow keys">
+          LEVEL
+        </div>
         <div
           className="w-full h-full relative border-l border-r cursor-crosshair border-l-neutral-700 border-r-neutral-700"
           onPointerDown={(e) => {
@@ -101,6 +120,61 @@ function App() {
         <div className="pr-3 w-[5ch] text-right">{threshold}</div>
       </div>
 
+      <div className="w-full h-10 border-t select-none border-t-neutral-700 flex relative items-center text-neutral-400">
+        <div className="px-3" title="Shift + left and arrow keys">
+          RESIZE
+        </div>
+        <div
+          className="w-full h-full relative border-l border-r cursor-crosshair border-l-neutral-700 border-r-neutral-700"
+          onPointerDown={(e) => {
+            (e.target as any).setPointerCapture(e.pointerId);
+            draggingRef.current = true;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            setResize(
+              Math.min(
+                maxResize,
+                Math.max(
+                  minResize,
+                  Math.round(
+                    ((x / width) * (maxResize - minResize) + minResize) / 0.05,
+                  ) * 0.05,
+                ),
+              ),
+            );
+          }}
+          onPointerMove={(e) => {
+            if (!draggingRef.current) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            setResize(
+              Math.min(
+                maxResize,
+                Math.max(
+                  minResize,
+                  Math.round(
+                    ((x / width) * (maxResize - minResize) + minResize) / 0.05,
+                  ) * 0.05,
+                ),
+              ),
+            );
+          }}
+          onPointerUp={() => {
+            draggingRef.current = false;
+          }}
+        >
+          <div
+            className="absolute left-0 top-0 bottom-0 bg-neutral-600 h-full"
+            style={{
+              width: `${((resize - minResize) / (maxResize - minResize)) * 100}%`,
+            }}
+          ></div>
+        </div>
+        <div className="pr-3 w-[7ch] text-right">{resize.toFixed(2)}</div>
+      </div>
+
       <div className="w-full select-none h-10 border-t border-t-neutral-700 flex justify-between relative items-stretch text-neutral-400">
         <label className="px-3 flex items-center border-r border-r-neutral-700 hover:bg-neutral-800">
           <input
@@ -128,6 +202,9 @@ function App() {
           <div className="flex items-center">
             <div>
               {width}X{height}
+              {Math.round(resize * 100) !== 100
+                ? ` to ${Math.round(width * resize)}X${Math.round(height * resize)}`
+                : null}
             </div>
           </div>
         </div>
@@ -168,15 +245,16 @@ function App() {
             </div>
             <div className="py-3 text-neutral-300 flex flex-col gap-4">
               <div className="px-3">
-                Upload, drop or paste your image. Adjust the level. Download the
-                progressively pixelated result.
+                Upload, drop or paste your image. Adjust the level and the size
+                for different variations. Download the progressively pixelated
+                result.
               </div>
               <div className="px-3">
                 Pixelation is calculated by finding the average color of a cell,
                 checking how much color information would be lost if that cell's
                 pixels were changed, and changing them if the loss is below the
                 threshold. Layers of progressively larger cells are applied one
-                on top of the other.
+                on top of one another.
               </div>
               <div className="px-3">
                 Please feel free to use the results. I'd love to hear about it
@@ -205,10 +283,30 @@ function App() {
 function SourceCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imageSource] = useAtom(ImageSourceAtom);
-  const [, setSourceCanvas] = useAtom(SourceCanvasAtom);
   const [, setCanvasBump] = useAtom(CanvasRenderBumpAtom);
+  const [, setSourceCanvas] = useAtom(SourceCanvasAtom);
   const [, setWidth] = useAtom(ImageWidthAtom);
   const [, setHeight] = useAtom(ImageHeightAtom);
+  const [resizeCanvas] = useAtom(ResizeCanvasAtom);
+  const [resize, setResize] = useAtom(ResizeAtom);
+
+  function updateResizeCanvas() {
+    const canvas = canvasRef.current!;
+    resizeCanvas.width = Math.round(canvas.width * resize);
+    resizeCanvas.height = Math.round(canvas.height * resize);
+    const rtx = resizeCanvas.getContext("2d")!;
+    rtx.drawImage(
+      canvas,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+      0,
+      0,
+      resizeCanvas.width,
+      resizeCanvas.height,
+    );
+  }
 
   useEffect(() => {
     async function main() {
@@ -217,17 +315,24 @@ function SourceCanvas() {
       if (!canvas) return;
       const ctx = canvas!.getContext("2d")!;
       if (!imageSource) return;
-      const slothImage = await loadImage(imageSource);
-      canvas.width = slothImage.width;
-      canvas.height = slothImage.height;
-      setWidth(slothImage.width);
-      setHeight(slothImage.height);
-      ctx.drawImage(slothImage, 0, 0, slothImage.width, slothImage.height);
+      const image = await loadImage(imageSource);
+      canvas.width = image.width;
+      canvas.height = image.height;
+      setWidth(image.width);
+      setHeight(image.height);
+      setResize(1);
+      ctx.drawImage(image, 0, 0, image.width, image.height);
       setSourceCanvas(canvas);
+      updateResizeCanvas();
       setCanvasBump((bump) => bump + 1);
     }
     main();
   }, [imageSource]);
+
+  useEffect(() => {
+    updateResizeCanvas();
+    setCanvasBump((bump) => bump + 1);
+  }, [resize]);
 
   return null;
 }
@@ -239,6 +344,7 @@ function Camera() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [, setImageSource] = useAtom(ImageSourceAtom);
   const captureRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   captureRef.current = captureRef.current || document.createElement("canvas");
 
@@ -265,15 +371,27 @@ function Camera() {
           deviceId: device!.deviceId,
         },
       });
+      streamRef.current = stream;
       videoRef.current!.srcObject = stream;
     }
     main();
   }, [device]);
 
+  function cleanup() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+  }
+
   return (
     <div
       className="absolute inset-0 bg-neutral-800 bg-opacity-80 flex px-4 overflow-auto"
-      onClick={() => setCamera(false)}
+      onClick={() => {
+        cleanup();
+        setCamera(false);
+      }}
     >
       <div
         className="m-auto bg-neutral-900 w-full max-w-[640px] border border-neutral-700 text-neutral-300"
@@ -286,6 +404,7 @@ function Camera() {
           <button
             className="px-3 flex items-center border-l border-l-neutral-700 hover:bg-neutral-800"
             onClick={() => {
+              cleanup();
               setCamera(false);
             }}
           >
@@ -321,7 +440,7 @@ function Camera() {
           </select>
           <button
             className="border-l border-l-neutral-700 hover:bg-neutral-800 text-neutral-300 px-3 py-2"
-            onClick={() => {
+            onClick={async () => {
               const video = videoRef.current!;
               const ctx = captureRef.current!.getContext("2d")!;
               captureRef.current!.width = video.videoWidth;
@@ -329,6 +448,7 @@ function Camera() {
               ctx.translate(video.videoWidth, 0);
               ctx.scale(-1, 1);
               ctx.drawImage(video, 0, 0);
+              cleanup();
               setImageSource(captureRef.current!.toDataURL());
               setCamera(false);
             }}

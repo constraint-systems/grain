@@ -3,29 +3,29 @@ import { useRef, useEffect } from "react";
 import {
   CanvasAtom,
   CanvasRenderBumpAtom,
-  SourceCanvasAtom,
+  ResizeCanvasAtom,
   ThresholdAtom,
 } from "./atoms";
 import { processLayer } from "./Processing";
 
 export function Canvas() {
-  const [sourceCanvas] = useAtom(SourceCanvasAtom);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [threshold] = useAtom(ThresholdAtom);
   const [canvasRenderBump] = useAtom(CanvasRenderBumpAtom);
   const [, setCanvas] = useAtom(CanvasAtom);
+  const [resizeCanvas] = useAtom(ResizeCanvasAtom);
 
   useEffect(() => {
-    if (!sourceCanvas) return;
+    if (!resizeCanvas) return;
     const canvas = canvasRef.current!;
-    const width = sourceCanvas.width;
-    const height = sourceCanvas.height;
+    const width = resizeCanvas.width;
+    const height = resizeCanvas.height;
     canvas.width = width;
     canvas.height = height;
     const dtx = canvas.getContext("2d")!;
-    dtx.drawImage(sourceCanvas, 0, 0);
+    dtx.drawImage(resizeCanvas, 0, 0);
     processLayer(canvas, threshold);
-  }, [sourceCanvas, threshold, canvasRenderBump]);
+  }, [resizeCanvas, threshold, canvasRenderBump]);
 
   useEffect(() => {
     setCanvas(canvasRef.current);

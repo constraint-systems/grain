@@ -1,12 +1,16 @@
 import { atom } from "jotai";
-import { SlothImage } from "./data";
+import veil from "./assets/veil.png";
 import { atomWithStorage } from "jotai/utils";
 
-export const ImageSourceAtom = atom<string | null>(SlothImage);
+export const ImageSourceAtom = atom<string | null>(veil);
+export const ResizeCanvasAtom = atom<HTMLCanvasElement>(
+  document.createElement("canvas"),
+);
 export const SourceCanvasAtom = atom<HTMLCanvasElement>(
   document.createElement("canvas"),
 );
-export const ThresholdAtom = atomWithStorage<number>("threshold", 10);
+export const ThresholdAtom = atomWithStorage<number>("threshold", 11);
+export const ResizeAtom = atom<number>(1);
 export const CanvasRenderBumpAtom = atom<number>(0);
 export const ImageWidthAtom = atom<number | null>(null);
 export const ImageHeightAtom = atom<number | null>(null);
